@@ -1,0 +1,52 @@
+﻿@page "/fetchdata"
+
+@using Keysafe.WebAdmin.Data
+@using GrpcGreeter
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject LockService LockService
+
+<h1>Locks</h1>
+
+@if (locks == null || locks.Count == 0)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Message</th>
+                <th>Counter</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var lockItem in locks)
+            {
+                <tr>
+                    <td>@lockItem.Message</td>
+                    <td>@lockItem.Counter</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<HelloReply> locks = new List<HelloReply>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity.IsAuthenticated)
+        {
+
+            var locksFromService = await LockService.GetLocksAsync(user.Identity.Name);
+            locks.Add(locksFromService);
+        }
+
+    } 
+}
