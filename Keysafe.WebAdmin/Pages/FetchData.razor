@@ -1,11 +1,11 @@
 ﻿@page "/fetchdata"
 
 @using Keysafe.WebAdmin.Data
-@using GrpcGreeter
+@using Claims
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject LockService LockService
+@inject ClaimService ClaimService
 
 <h1>Locks</h1>
 

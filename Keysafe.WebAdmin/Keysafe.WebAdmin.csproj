@@ -20,12 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Data\Protos\" />
+    <Folder Include="Protos\" />
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\greet.proto">
-      <Link>Protos\greet.proto</Link>
+    <Protobuf Include="..\Keysafe.Claims\Keysafe.ClaimService\Protos\claims.proto">
+      <Link>Protos\claims.proto</Link>
     </Protobuf>
   </ItemGroup>
 

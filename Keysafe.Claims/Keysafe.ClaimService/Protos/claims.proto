@@ -10,13 +10,37 @@ service Claims {
   rpc CreateVerifiableClaims (VerifiableClaimsCreateRequest) returns (VerifiableClaimsCreateReply);
 }
 
+message User {
+	string ssid = 1;
+	string name = 2;
+	string email = 3;
+}
+
+message Organization {
+	string name = 1;
+	string department = 2;
+	string localization = 3;
+	string place_of_work = 4;
+}
+
+message Lock {
+	string id = 1;
+	string address = 2;
+}
+
 message VerifiableClaimsCreateRequest {
-  google.protobuf.Timestamp valid_to = 1;
-  string name = 2;
+  string attest_uuid = 1;
+  google.protobuf.Timestamp valid_from = 2;
+  google.protobuf.Timestamp valid_to = 3;
+  User user = 4;
+  Organization organization = 5;
+  Lock lock = 6;
+  string channel_id = 7;
+  string side_key = 8;
 }
 
 message VerifiableClaimsCreateReply {
   bool success = 1;
   string message = 2;
-  string attesthash = 3;
+  string attest_hash = 3;
 }
