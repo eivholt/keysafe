@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option csharp_namespace = "Keysafe.ClaimService";
+
+package claims;
+
+import "google/protobuf/timestamp.proto";
+
+service Claims {
+  rpc CreateVerifiableClaims (VerifiableClaimsCreateRequest) returns (VerifiableClaimsCreateReply);
+}
+
+message VerifiableClaimsCreateRequest {
+  google.protobuf.Timestamp valid_to = 1;
+  string name = 2;
+}
+
+message VerifiableClaimsCreateReply {
+  bool success = 1;
+  string message = 2;
+  string attesthash = 3;
+}
