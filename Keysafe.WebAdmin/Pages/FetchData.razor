@@ -1,41 +1,50 @@
 ﻿@page "/fetchdata"
 
 @using Keysafe.WebAdmin.Data
-@using Claims
+@using Keysafe.ClaimService
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject ClaimService ClaimService
+@inject ClaimsServiceFacade ClaimsServiceClient
 
-<h1>Locks</h1>
+<h1>Claims</h1>
 
-@if (locks == null || locks.Count == 0)
+<button class="btn btn-danger" @onclick="CreateClaimOnClick">Create claim</button>
+
+<br><br>
+
+@if (m_claims == null)
 {
-    <p><em>Loading...</em></p>
+<p><em>Loading...</em></p>
 }
 else
 {
-    <table class="table">
-        <thead>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ChannelRoot</th>
+            <th>NextRoot</th>
+            <th>AttestHash</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var claimItem in m_claims)
+        {
             <tr>
-                <th>Message</th>
-                <th>Counter</th>
+                <td>@claimItem.ChannelRoot</td>
+                <td>@claimItem.NextRoot</td>
+                <td>@claimItem.AttestHash</td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach (var lockItem in locks)
-            {
-                <tr>
-                    <td>@lockItem.Message</td>
-                    <td>@lockItem.Counter</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+        }
+    </tbody>
+</table>
 }
 
 @code {
-    private List<HelloReply> locks = new List<HelloReply>();
+
+    private static readonly string s_sampleLock1Seed = "W9XOWBFMSZKXNLHZWDTPUQTW99OSPFHSLEGAQMR9FDSLYUPGCMZBGCEXCN9BBW9CBNHNQACFHYJEQOU99";
+    private static readonly string s_sampleLock1SideKey = "E&AVejgjEk36k@-%";
+    private List<VerifiableClaimReplyItem> m_claims = new List<VerifiableClaimReplyItem>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -44,9 +53,48 @@ else
         if (user.Identity.IsAuthenticated)
         {
 
-            var locksFromService = await LockService.GetLocksAsync(user.Identity.Name);
-            locks.Add(locksFromService);
-        }
+            var claims = await ClaimsServiceClient.GetVerifiableClaims(
+                new VerifiableClaimRequest
+                {
+                    ChannelRoot = s_sampleLock1Seed,
+                    SideKey = s_sampleLock1SideKey
+                });
 
-    } 
+            foreach (var claim in claims.Claims)
+            {
+                m_claims.Add(claim);
+            }
+        }
+    }
+
+    private async Task CreateClaimOnClick()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated)
+            {
+                var userItem = new User { Ssid = "25014930178", Email = "user@gmail.com", Name = "Ripley, Ellen" };
+                var organization = new Organization { Name = "Weyland-Yutani Corporation", Department = "USCSS", Location = "LV246", PlaceOfWork = "USCSS Nostromo" };
+                var lockItem = new Lock { Id = "01", LocationAddress = "Testlab1" };
+
+                var request = new VerifiableClaimsCreateRequest
+                {
+                    AttestUuid = Guid.NewGuid().ToString(),
+                    ValidFrom = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow),
+                    ValidTo = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow.AddMinutes(10)),
+                    User = userItem,
+                    Organization = organization,
+                    Lock = lockItem
+                };
+
+                var claim = await ClaimsServiceClient.CreateVerifiableClaims(request);
+            }
+        } 
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+        }
+    }
 }
