@@ -17,6 +17,9 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="3.1.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.4" />
+    <PackageReference Include="RandomDataGenerator.Net" Version="1.0.11" />
+    <PackageReference Include="Tangle.Net.Standard" Version="3.1.1" />
+    <PackageReference Include="Tangle.Net.Standard.Mam" Version="2.1.0" />
   </ItemGroup>
 
   <ItemGroup>

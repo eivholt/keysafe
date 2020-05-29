@@ -2,51 +2,127 @@
 
 @using Keysafe.WebAdmin.Data
 @using Keysafe.ClaimService
-@using System.Security.Claims
+@using RandomDataGenerator.FieldOptions
+@using RandomDataGenerator.Randomizers
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using Tangle.Net.Entity
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ClaimsServiceFacade ClaimsServiceClient
 
 <h1>Claims</h1>
-
+<button class="btn btn" @onclick="FetchClaimsOnClick">Fetch claim</button>
 <button class="btn btn-danger" @onclick="CreateClaimOnClick">Create claim</button>
 
-<br><br>
+<br>
+<br>
 
-@if (m_claims == null)
+<button class="btn btn" @onclick="GenerateSeedOnClick">Generate seed/side key</button>
+<p>Seed: @m_seed.Value</p>
+<p>Side key: @m_sideKey.Value</p>
+
+<br>
+<br>
+
+@if (m_lastRoot == string.Empty)
 {
-<p><em>Loading...</em></p>
+    <p><em>Publish message</em></p>
 }
 else
 {
-<table class="table">
-    <thead>
-        <tr>
-            <th>ChannelRoot</th>
-            <th>NextRoot</th>
-            <th>AttestHash</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var claimItem in m_claims)
-        {
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Address</th>
+                <th>ChannelRoot</th>
+                <th>NextRoot</th>
+                <th>AttestHash</th>
+                <th>IsConfirmed</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><a href="https://comnet.thetangle.org/address/@m_address" target="_blank">@m_address</a></td>
+                <td>@m_lastRoot</td>
+                <td>@m_nextRoot</td>
+                <td>@m_attestHash</td>
+                <td>@m_isConfirmed</td>
+            </tr>
+        </tbody>
+    </table>
+}
+
+<br>
+<br>
+
+@if (m_claims == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ChannelRoot</th>
+                <th>NextRoot</th>
+                <th>NextRoot</th>
+                <th>AttestHash</th>
+
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var claimItem in m_claims)
+            {
             <tr>
                 <td>@claimItem.ChannelRoot</td>
                 <td>@claimItem.NextRoot</td>
+                <td>@claimItem.Message</td>
                 <td>@claimItem.AttestHash</td>
             </tr>
-        }
-    </tbody>
-</table>
+            }
+        </tbody>
+    </table>
 }
 
 @code {
 
-    private static readonly string s_sampleLock1Seed = "W9XOWBFMSZKXNLHZWDTPUQTW99OSPFHSLEGAQMR9FDSLYUPGCMZBGCEXCN9BBW9CBNHNQACFHYJEQOU99";
-    private static readonly string s_sampleLock1SideKey = "E&AVejgjEk36k@-%";
-    private List<VerifiableClaimReplyItem> m_claims = new List<VerifiableClaimReplyItem>();
+    //private static readonly string s_sampleLock1Seed = "W9XOWBFMSZKXNLHZWDTPUQTW99OSPFHSLEGAQMR9FDSLYUPGCMZBGCEXCN9BBW9CBNHNQACFHYJEQOU99";
+    //private static readonly string s_sampleLock1SideKey = "QOAFIB9SPBTXIUUMDSSVZAEEPDEQKGWKNANJHOPCDIOBDEMFNMTEGBKBGU9OVHZ9KPCSRCZBAAABIYUTH";
+    private Seed m_seed;
+    private Seed m_sideKey;
 
-    protected override async Task OnInitializedAsync()
+    private List<VerifiableClaimReplyItem> m_claims = new List<VerifiableClaimReplyItem>();
+    private string m_address = string.Empty;
+    private string m_lastRoot = string.Empty;
+    private string m_nextRoot = string.Empty;
+    private string m_attestHash = string.Empty;
+    private bool m_isConfirmed = false;
+
+    private IRandomizerString randomizerFullName = RandomizerFactory.GetRandomizer(new FieldOptionsFullName());
+    private IRandomizerString randomizerEmail = RandomizerFactory.GetRandomizer(new FieldOptionsEmailAddress());
+    private IRandomizerString randomizerLocationName = RandomizerFactory.GetRandomizer(new FieldOptionsCity());
+    private IRandomizerString randomizerWord = RandomizerFactory.GetRandomizer(new FieldOptionsTextWords { Max = 1 });
+    private IRandomizerString randomizerMac = RandomizerFactory.GetRandomizer(new FieldOptionsMACAddress());
+    private IRandomizerNumber<long> randomizerSsid = RandomizerFactory.GetRandomizer<long>(new FieldOptionsLong() { Min = 10014930178, Max = 31129999999, ValueAsString = true });
+
+    protected override void OnInitialized()
+    {
+        GenerateRandomSeedAndSideKey();
+    }
+
+    private void GenerateSeedOnClick()
+    {
+        GenerateRandomSeedAndSideKey();
+    }
+
+    private void GenerateRandomSeedAndSideKey()
+    {
+        m_seed = Seed.Random();
+        m_sideKey = Seed.Random();
+    }
+
+    private async Task FetchClaimsOnClick()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
@@ -56,8 +132,8 @@ else
             var claims = await ClaimsServiceClient.GetVerifiableClaims(
                 new VerifiableClaimRequest
                 {
-                    ChannelRoot = s_sampleLock1Seed,
-                    SideKey = s_sampleLock1SideKey
+                    ChannelRoot = m_lastRoot,
+                    SideKey = m_sideKey.Value
                 });
 
             foreach (var claim in claims.Claims)
@@ -75,23 +151,47 @@ else
             var user = authState.User;
             if (user.Identity.IsAuthenticated)
             {
-                var userItem = new User { Ssid = "25014930178", Email = "user@gmail.com", Name = "Ripley, Ellen" };
-                var organization = new Organization { Name = "Weyland-Yutani Corporation", Department = "USCSS", Location = "LV246", PlaceOfWork = "USCSS Nostromo" };
-                var lockItem = new Lock { Id = "01", LocationAddress = "Testlab1" };
+                var userItem = new User
+                {
+                    Ssid = randomizerSsid.Generate().ToString(),
+                    Email = randomizerEmail.Generate(),
+                    Name = randomizerFullName.Generate()
+                };
 
-                var request = new VerifiableClaimsCreateRequest
+                var organization = new Organization
+                {
+                    Name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(randomizerWord.Generate().ToLower()),
+                    Department = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(randomizerWord.Generate().ToLower()),
+                    Location = randomizerLocationName.Generate(),
+                    PlaceOfWork = randomizerWord.Generate()
+                };
+
+                var lockItem = new Lock
+                {
+                    Id = randomizerMac.Generate(true),
+                    LocationAddress = randomizerLocationName.Generate()
+                };
+
+                var request = new PublishVerifiableClaimsRequest
                 {
                     AttestUuid = Guid.NewGuid().ToString(),
                     ValidFrom = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow),
                     ValidTo = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow.AddMinutes(10)),
                     User = userItem,
                     Organization = organization,
-                    Lock = lockItem
+                    Lock = lockItem,
+                    Seed = m_seed.Value,
+                    SideKey = m_sideKey.Value
                 };
 
-                var claim = await ClaimsServiceClient.CreateVerifiableClaims(request);
+                var claim = await ClaimsServiceClient.PublishVerifiableClaims(request);
+                m_lastRoot = claim.ChannelRoot;
+                m_attestHash = claim.AttestHash;
+                m_nextRoot = claim.NextRoot;
+                m_isConfirmed = claim.IsConfirmed;
+                m_address = claim.Address;
             }
-        } 
+        }
         catch (Exception ex)
         {
             Console.Error.WriteLine(ex.Message);

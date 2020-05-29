@@ -7,7 +7,7 @@ package claims;
 import "google/protobuf/timestamp.proto";
 
 service Claims {
-	rpc CreateVerifiableClaims (VerifiableClaimsCreateRequest) returns (VerifiableClaimsCreateReply);
+	rpc PublishVerifiableClaims (PublishVerifiableClaimsRequest) returns (PublishVerifiableClaimsReply);
 	rpc GetVerifiableClaims (VerifiableClaimRequest) returns (VerifiableClaimReply);
 }
 
@@ -29,22 +29,24 @@ message Lock {
 	string location_address = 2;
 }
 
-message VerifiableClaimsCreateRequest {
+message PublishVerifiableClaimsRequest {
 	string attest_uuid = 1;
 	google.protobuf.Timestamp valid_from = 2;
 	google.protobuf.Timestamp valid_to = 3;
 	User user = 4;
 	Organization organization = 5;
 	Lock lock = 6;
-	string channel_id = 7;
+	string seed = 7;
 	string side_key = 8;
 }
 
-message VerifiableClaimsCreateReply {
-	bool success = 1;
+message PublishVerifiableClaimsReply {
+	bool is_confirmed = 1;
 	string message = 2;
 	string attest_hash = 3;
 	string channel_root = 4;
+	string next_root = 5;
+	string address = 6;
 }
 
 message VerifiableClaimRequest {
@@ -60,4 +62,5 @@ message VerifiableClaimReplyItem {
 	string attest_hash = 1;
 	string next_root = 2;
 	string channel_root = 3;
+	string message = 4;
 }
